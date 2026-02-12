@@ -663,6 +663,160 @@ html, body {
 }
 
 /* ===== Responsive ===== */
+/* ===== Hand Control Button ===== */
+.hand-control {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 100;
+}
+
+.hand-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border: 1px solid var(--gold-dark);
+    border-radius: 50px;
+    background: rgba(15, 10, 26, 0.9);
+    color: var(--gold);
+    font-family: 'Noto Serif SC', serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.hand-btn:hover {
+    background: rgba(201, 168, 76, 0.15);
+    border-color: var(--gold);
+    box-shadow: 0 0 20px rgba(201, 168, 76, 0.2);
+}
+
+.hand-btn.active {
+    background: rgba(201, 168, 76, 0.2);
+    border-color: var(--gold);
+    box-shadow: 0 0 30px rgba(201, 168, 76, 0.3);
+}
+
+/* ===== Camera Panel ===== */
+.camera-panel {
+    position: fixed;
+    bottom: 80px;
+    right: 30px;
+    width: 260px;
+    background: rgba(15, 10, 26, 0.95);
+    border: 1px solid rgba(201, 168, 76, 0.3);
+    border-radius: 16px;
+    overflow: hidden;
+    z-index: 99;
+    display: none;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+}
+
+.camera-panel.active {
+    display: block;
+    animation: slideInUp 0.3s ease;
+}
+
+@keyframes slideInUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.camera-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    color: var(--gold);
+    border-bottom: 1px solid rgba(201, 168, 76, 0.15);
+}
+
+.camera-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    transition: color 0.2s;
+}
+.camera-close:hover { color: var(--gold); }
+
+.camera-view {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: #000;
+}
+
+.camera-view video, .camera-view canvas {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.camera-view video { transform: scaleX(-1); }
+.camera-view canvas { transform: scaleX(-1); }
+
+.gesture-status {
+    padding: 8px 14px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+/* ===== Hand Cursor ===== */
+.hand-cursor {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    display: none;
+}
+
+.hand-cursor.active { display: block; }
+
+.hand-cursor-inner {
+    width: 16px;
+    height: 16px;
+    background: var(--gold);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 15px rgba(201, 168, 76, 0.8);
+    transition: transform 0.1s ease;
+}
+
+.hand-cursor-ring {
+    width: 40px;
+    height: 40px;
+    border: 2px solid var(--gold);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0.5;
+    transition: all 0.15s ease;
+}
+
+.hand-cursor.pinching .hand-cursor-inner {
+    transform: translate(-50%, -50%) scale(1.5);
+    background: #fff;
+}
+
+.hand-cursor.pinching .hand-cursor-ring {
+    width: 20px;
+    height: 20px;
+    opacity: 1;
+    border-color: #fff;
+}
+
 @media (max-width: 768px) {
     :root {
         --card-w: 100px;
@@ -704,6 +858,8 @@ html, body {
     .deck-preview { height: 180px; }
     .deck-preview-img { height: 150px; }
     .back-btn { padding: 6px 12px; font-size: 0.75rem; }
+    .hand-control { bottom: 20px; right: 20px; }
+    .camera-panel { bottom: 70px; right: 20px; width: 200px; }
 }
 
 @media (max-width: 480px) {
@@ -756,6 +912,40 @@ html, body {
                 <div class="header-ornament"></div>
             </div>
         </header>
+        <!-- Hand control button -->
+        <div class="hand-control">
+            <button class="hand-btn" id="handToggleBtn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/>
+                    <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/>
+                    <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/>
+                    <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+                </svg>
+                <span>手势控制</span>
+            </button>
+        </div>
+
+        <!-- Camera panel -->
+        <div class="camera-panel" id="cameraPanel">
+            <div class="camera-header">
+                <span>手势追踪</span>
+                <button class="camera-close" id="cameraClose">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="camera-view">
+                <video id="webcam" autoplay playsinline></video>
+                <canvas id="handCanvas"></canvas>
+            </div>
+            <div class="gesture-status" id="gestureStatus">等待启动...</div>
+        </div>
+
+        <!-- Hand cursor -->
+        <div class="hand-cursor" id="handCursor">
+            <div class="hand-cursor-inner"></div>
+            <div class="hand-cursor-ring"></div>
+        </div>
+
         <div class="cards-area">
             <div class="cards-track" id="cardsTrack"></div>
         </div>
@@ -793,6 +983,11 @@ html, body {
             </div>
         </div>
     </div>
+
+    <!-- MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js" crossorigin="anonymous"></script>
 
 <script>
 /* ============================================================
@@ -946,9 +1141,11 @@ class ViewManager {
         this.titleEl = document.getElementById('deckTitle');
         this.subtitleEl = document.getElementById('deckSubtitle');
         this.currentApp = null;
+        this.handTracker = null;
         this.backBtn.addEventListener('click', () => this.showSelect());
     }
     showSelect() {
+        if (this.handTracker && this.handTracker.isActive) this.handTracker.stop();
         this.viewDraw.style.display = 'none';
         this.viewSelect.style.display = 'flex';
         this.viewSelect.classList.add('view-fade-enter');
@@ -963,6 +1160,11 @@ class ViewManager {
         this.subtitleEl.textContent = `${deck.nameCN} · 命运之牌`;
         const cards = buildDeckCards(deck);
         this.currentApp = new TarotApp(cards);
+        if (!this.handTracker) {
+            this.handTracker = new HandTracker(this.currentApp);
+        } else {
+            this.handTracker.app = this.currentApp;
+        }
     }
 }
 
@@ -1074,6 +1276,123 @@ class TarotApp {
         this.modalOverlay.classList.remove('active', 'revealed');
         document.getElementById('modalFlip').classList.remove('flipped');
         this.isModalOpen = false;
+    }
+    scrollByHand(dx) {
+        const current = this.getTranslateX();
+        this.setTranslateX(current + dx);
+        this.clampPosition();
+    }
+    highlightCardAt(screenX, screenY) {
+        const cards = this.track.querySelectorAll('.tarot-card');
+        let closest = null, minDist = Infinity;
+        cards.forEach(c => {
+            const rect = c.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+            const dist = Math.hypot(screenX - cx, screenY - cy);
+            if (dist < minDist) { minDist = dist; closest = c; }
+        });
+        if (this.currentHover && this.currentHover !== closest) this.currentHover.classList.remove('hand-hover');
+        if (closest && minDist < 200) { closest.classList.add('hand-hover'); this.currentHover = closest; }
+        else if (this.currentHover) { this.currentHover.classList.remove('hand-hover'); this.currentHover = null; }
+        return closest;
+    }
+    clickCardAt(screenX, screenY) {
+        const card = this.highlightCardAt(screenX, screenY);
+        if (card) { const idx = parseInt(card.dataset.index); this.openCard(this.shuffledCards[idx], card); }
+    }
+}
+
+/* ============================================================
+   手势追踪系统
+   ============================================================ */
+class HandTracker {
+    constructor(app) {
+        this.app = app;
+        this.isActive = false;
+        this.video = document.getElementById('webcam');
+        this.handCanvas = document.getElementById('handCanvas');
+        this.handCtx = this.handCanvas.getContext('2d');
+        this.cursor = document.getElementById('handCursor');
+        this.statusEl = document.getElementById('gestureStatus');
+        this.cameraPanel = document.getElementById('cameraPanel');
+        this.prevX = null; this.smoothX = 0; this.smoothY = 0;
+        this.isPinching = false; this.pinchCooldown = false;
+        this.hands = null; this.camera = null;
+        this.bindUI();
+    }
+    bindUI() {
+        document.getElementById('handToggleBtn').addEventListener('click', () => {
+            this.isActive ? this.stop() : this.start();
+        });
+        document.getElementById('cameraClose').addEventListener('click', () => this.stop());
+    }
+    async start() {
+        this.statusEl.textContent = '正在加载模型...';
+        this.cameraPanel.classList.add('active');
+        document.getElementById('handToggleBtn').classList.add('active');
+        try {
+            if (!this.hands) {
+                this.hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}` });
+                this.hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.5 });
+                this.hands.onResults((r) => this.onResults(r));
+            }
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240, facingMode: 'user' } });
+            this.video.srcObject = stream;
+            this.camera = new Camera(this.video, {
+                onFrame: async () => { if (this.isActive) await this.hands.send({ image: this.video }); },
+                width: 320, height: 240
+            });
+            await this.camera.start();
+            this.isActive = true;
+            this.cursor.classList.add('active');
+            this.statusEl.textContent = '手势追踪已启动 - 移动手掌控制';
+        } catch (err) {
+            console.error('Hand tracking error:', err);
+            this.statusEl.textContent = '启动失败: ' + (err.message || '请允许摄像头权限');
+        }
+    }
+    stop() {
+        this.isActive = false;
+        if (this.camera) this.camera.stop();
+        if (this.video.srcObject) { this.video.srcObject.getTracks().forEach(t => t.stop()); this.video.srcObject = null; }
+        this.cameraPanel.classList.remove('active');
+        document.getElementById('handToggleBtn').classList.remove('active');
+        this.cursor.classList.remove('active', 'pinching');
+        this.statusEl.textContent = '已停止';
+        if (this.app && this.app.currentHover) { this.app.currentHover.classList.remove('hand-hover'); this.app.currentHover = null; }
+    }
+    onResults(results) {
+        this.handCanvas.width = this.video.videoWidth || 320;
+        this.handCanvas.height = this.video.videoHeight || 240;
+        this.handCtx.clearRect(0, 0, this.handCanvas.width, this.handCanvas.height);
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            const landmarks = results.multiHandLandmarks[0];
+            drawConnectors(this.handCtx, landmarks, HAND_CONNECTIONS, { color: 'rgba(201, 168, 76, 0.6)', lineWidth: 2 });
+            drawLandmarks(this.handCtx, landmarks, { color: 'rgba(201, 168, 76, 0.8)', lineWidth: 1, radius: 3 });
+            const thumbTip = landmarks[4], indexTip = landmarks[8], palmCenter = landmarks[9];
+            const screenX = (1 - palmCenter.x) * window.innerWidth;
+            const screenY = palmCenter.y * window.innerHeight;
+            this.smoothX += (screenX - this.smoothX) * 0.3;
+            this.smoothY += (screenY - this.smoothY) * 0.3;
+            this.cursor.style.left = this.smoothX + 'px';
+            this.cursor.style.top = this.smoothY + 'px';
+            if (this.prevX !== null) { const dx = this.smoothX - this.prevX; if (Math.abs(dx) > 2) this.app.scrollByHand(dx * 2); }
+            this.prevX = this.smoothX;
+            this.app.highlightCardAt(this.smoothX, this.smoothY);
+            const pinchDist = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
+            const wasPinching = this.isPinching;
+            this.isPinching = pinchDist < 0.06;
+            if (this.isPinching) { this.cursor.classList.add('pinching'); this.statusEl.textContent = '捏合检测到 - 选牌！'; }
+            else { this.cursor.classList.remove('pinching'); this.statusEl.textContent = '追踪中 - 移动手掌滑动，捏合选牌'; }
+            if (this.isPinching && !wasPinching && !this.pinchCooldown) {
+                this.pinchCooldown = true;
+                this.app.clickCardAt(this.smoothX, this.smoothY);
+                setTimeout(() => { this.pinchCooldown = false; }, 1500);
+            }
+        } else {
+            this.statusEl.textContent = '未检测到手 - 请将手放入摄像头画面';
+            this.prevX = null;
+        }
     }
 }
 

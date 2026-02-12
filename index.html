@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>塔罗牌占卜 - 选择你的牌组</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== Reset & Base ===== */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg-deep: #06040d;
+    --bg-surface: #0f0a1a;
+    --gold: #c9a84c;
+    --gold-light: #e8d48b;
+    --gold-dark: #8b6914;
+    --purple: #7c3aed;
+    --purple-light: #a78bfa;
+    --purple-dark: #4c1d95;
+    --text-primary: #e8dcc8;
+    --text-secondary: #a09484;
+    --text-muted: #6b5e50;
+    --card-w: 140px;
+    --card-h: 240px;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    cursor: default;
+    -webkit-font-smoothing: antialiased;
+}
+
+#particleCanvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.header {
+    display: flex;
+    align-items: flex-start;
+    padding: 28px 20px 12px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.header-center {
+    flex: 1;
+    text-align: center;
+}
+
+.header-ornament {
+    width: 180px;
+    height: 1px;
+    margin: 6px auto;
+    background: linear-gradient(90deg, transparent, var(--gold-dark), var(--gold), var(--gold-dark), transparent);
+}
+
+.title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 4px;
+    text-shadow: 0 0 40px rgba(201, 168, 76, 0.3);
+    line-height: 1.2;
+}
+
+.subtitle {
+    font-family: 'Noto Serif SC', serif;
+    font-size: clamp(0.85rem, 1.5vw, 1.1rem);
+    color: var(--text-secondary);
+    margin-top: 4px;
+    letter-spacing: 6px;
+}
+
+.hint {
+    font-size: clamp(0.75rem, 1.2vw, 0.9rem);
+    color: var(--text-muted);
+    margin-top: 10px;
+    font-style: italic;
+    animation: hintPulse 3s ease-in-out infinite;
+}
+
+@keyframes hintPulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* ===== Cards Area ===== */
+.cards-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+    padding: 0 40px;
+}
+
+.cards-area::before,
+.cards-area::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 80px;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.cards-area::before {
+    left: 0;
+    background: linear-gradient(90deg, var(--bg-deep), transparent);
+}
+
+.cards-area::after {
+    right: 0;
+    background: linear-gradient(-90deg, var(--bg-deep), transparent);
+}
+
+.cards-track {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 40px 100px;
+    cursor: grab;
+    will-change: transform;
+    user-select: none;
+}
+
+.cards-track.grabbing {
+    cursor: grabbing;
+}
+
+/* ===== Individual Card ===== */
+.tarot-card {
+    flex-shrink: 0;
+    width: var(--card-w);
+    height: var(--card-h);
+    perspective: 800px;
+    cursor: pointer;
+    margin-left: -20px;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                margin 0.4s ease,
+                z-index 0s;
+    position: relative;
+    z-index: 1;
+}
+
+.tarot-card:first-child {
+    margin-left: 0;
+}
+
+.tarot-card:hover,
+.tarot-card.hand-hover {
+    transform: translateY(-40px) scale(1.15);
+    z-index: 20;
+    margin-left: 10px;
+    margin-right: 30px;
+}
+
+.tarot-card.selected {
+    transform: translateY(-60px) scale(1.25);
+    z-index: 30;
+}
+
+.card-inner {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    border-radius: 10px;
+}
+
+.tarot-card.flipped .card-inner {
+    transform: rotateY(180deg);
+}
+
+.card-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* ===== Card Back Design ===== */
+.card-back-design {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(145deg, #1a1040, #0d0820, #1a0a30);
+    border: 2px solid var(--gold-dark);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.card-back-design::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 1px solid rgba(201, 168, 76, 0.25);
+    border-radius: 6px;
+}
+
+.card-back-design::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: 
+        radial-gradient(circle at 30% 20%, rgba(124, 58, 237, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 70% 80%, rgba(201, 168, 76, 0.1) 0%, transparent 50%);
+}
+
+.card-back-border {
+    width: calc(100% - 24px);
+    height: calc(100% - 24px);
+    border: 1px solid rgba(201, 168, 76, 0.2);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+}
+
+.card-back-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-back-star {
+    font-size: 2.5rem;
+    color: var(--gold);
+    opacity: 0.6;
+    text-shadow: 0 0 20px rgba(201, 168, 76, 0.5);
+    animation: starGlow 4s ease-in-out infinite;
+}
+
+@keyframes starGlow {
+    0%, 100% { opacity: 0.4; text-shadow: 0 0 15px rgba(201, 168, 76, 0.3); }
+    50% { opacity: 0.8; text-shadow: 0 0 30px rgba(201, 168, 76, 0.7); }
+}
+
+.tarot-card:hover .card-back-design,
+.tarot-card.hand-hover .card-back-design {
+    border-color: var(--gold);
+    box-shadow: 
+        0 0 30px rgba(201, 168, 76, 0.3),
+        inset 0 0 30px rgba(201, 168, 76, 0.1);
+}
+
+.tarot-card:hover .card-back-star,
+.tarot-card.hand-hover .card-back-star {
+    opacity: 1;
+    animation: none;
+}
+
+/* ===== Card Front ===== */
+.card-front-face {
+    transform: rotateY(180deg);
+    background: #f4eee0;
+    border: 2px solid var(--gold-dark);
+}
+
+.card-front-face img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+/* ===== Modal Overlay ===== */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    background: rgba(6, 4, 13, 0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    transition: background 0.5s ease;
+}
+
+.modal-overlay.active {
+    background: rgba(6, 4, 13, 0.92);
+    pointer-events: auto;
+}
+
+.modal {
+    display: flex;
+    gap: 40px;
+    max-width: 900px;
+    width: 90%;
+    align-items: flex-start;
+    opacity: 0;
+    transform: translateY(40px) scale(0.95);
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+}
+
+.modal-overlay.active .modal {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.modal-close {
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(201, 168, 76, 0.3);
+    background: rgba(15, 10, 26, 0.9);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+}
+
+.modal-close:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+    transform: rotate(90deg);
+}
+
+.modal-card {
+    flex-shrink: 0;
+    width: 240px;
+    height: 400px;
+    perspective: 1200px;
+}
+
+.modal-flip {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 1s cubic-bezier(0.68, -0.3, 0.265, 1.3);
+}
+
+.modal-flip.flipped {
+    transform: rotateY(180deg);
+}
+
+.modal-card-back, .modal-card-front {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.modal-card-back .card-back-design {
+    border-radius: 12px;
+}
+
+.modal-card-back .card-back-star {
+    font-size: 4rem;
+}
+
+.modal-card-front {
+    transform: rotateY(180deg);
+    border: 3px solid var(--gold);
+    border-radius: 12px;
+    background: #f4eee0;
+    box-shadow: 0 20px 60px rgba(201, 168, 76, 0.3);
+}
+
+.modal-card-front img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 9px;
+}
+
+.modal-info {
+    flex: 1;
+    padding: 10px 0;
+    opacity: 0;
+    transform: translateX(20px);
+    transition: all 0.6s ease 0.6s;
+}
+
+.modal-overlay.active.revealed .modal-info {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.modal-card-number {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 0.85rem;
+    color: var(--gold-dark);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.modal-card-name {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(1.5rem, 3vw, 2.2rem);
+    color: var(--gold);
+    letter-spacing: 2px;
+    line-height: 1.3;
+    text-shadow: 0 0 30px rgba(201, 168, 76, 0.3);
+}
+
+.modal-position {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 6px 18px;
+    border: 1px solid;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+}
+
+.modal-position.upright {
+    border-color: rgba(201, 168, 76, 0.5);
+    color: var(--gold);
+    background: rgba(201, 168, 76, 0.1);
+}
+
+.modal-position.reversed {
+    border-color: rgba(124, 58, 237, 0.5);
+    color: var(--purple-light);
+    background: rgba(124, 58, 237, 0.1);
+}
+
+.modal-divider {
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, var(--gold-dark), transparent);
+    margin: 20px 0;
+}
+
+.modal-keywords {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin-bottom: 16px;
+    font-style: italic;
+}
+
+.modal-meaning {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 1rem;
+    color: var(--text-primary);
+    line-height: 2;
+    opacity: 0.9;
+}
+
+/* ===== View System ===== */
+.view {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+    z-index: 1;
+}
+
+.view-fade-enter {
+    animation: viewFadeIn 0.6s ease forwards;
+}
+
+@keyframes viewFadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Deck Selection Page ===== */
+#viewSelect {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+}
+#viewSelect::-webkit-scrollbar { display: none; }
+
+.select-header {
+    text-align: center;
+    padding: 50px 20px 20px;
+    flex-shrink: 0;
+}
+
+.select-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 4px;
+    text-shadow: 0 0 40px rgba(201, 168, 76, 0.3);
+}
+
+.select-subtitle {
+    font-family: 'Noto Serif SC', serif;
+    font-size: clamp(0.9rem, 1.5vw, 1.15rem);
+    color: var(--text-secondary);
+    margin-top: 6px;
+    letter-spacing: 6px;
+}
+
+.decks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 28px;
+    padding: 30px 40px 60px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.deck-card {
+    position: relative;
+    background: linear-gradient(145deg, rgba(15, 10, 26, 0.9), rgba(26, 16, 64, 0.6));
+    border: 1px solid rgba(201, 168, 76, 0.2);
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    backdrop-filter: blur(10px);
+}
+
+.deck-card:hover {
+    transform: translateY(-8px);
+    border-color: var(--gold);
+    box-shadow: 0 20px 50px rgba(201, 168, 76, 0.15), 0 0 30px rgba(201, 168, 76, 0.1);
+}
+
+.deck-preview {
+    width: 100%;
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(201, 168, 76, 0.05) 0%, transparent 100%);
+}
+
+.deck-preview-img {
+    height: 180px;
+    width: auto;
+    border-radius: 6px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    transition: transform 0.4s ease;
+    object-fit: cover;
+}
+
+.deck-card:hover .deck-preview-img {
+    transform: scale(1.05);
+}
+
+.deck-preview-img:nth-child(2) {
+    transform: rotate(5deg) translateY(-5px);
+    z-index: 2;
+}
+
+.deck-preview-img:nth-child(1) {
+    transform: rotate(-8deg) translateX(10px);
+    z-index: 1;
+}
+
+.deck-preview-img:nth-child(3) {
+    transform: rotate(8deg) translateX(-10px);
+    z-index: 1;
+}
+
+.deck-card:hover .deck-preview-img:nth-child(2) {
+    transform: rotate(5deg) translateY(-10px) scale(1.05);
+}
+
+.deck-info {
+    padding: 20px 24px 24px;
+}
+
+.deck-name {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 1.1rem;
+    color: var(--gold);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.deck-name-cn {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.deck-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+}
+
+.deck-badge {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    padding: 4px 12px;
+    border-radius: 50px;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+}
+
+.deck-badge.available {
+    background: rgba(201, 168, 76, 0.15);
+    border: 1px solid rgba(201, 168, 76, 0.4);
+    color: var(--gold);
+}
+
+.back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 1px solid rgba(201, 168, 76, 0.3);
+    border-radius: 50px;
+    background: rgba(15, 10, 26, 0.8);
+    color: var(--gold);
+    font-family: 'Noto Serif SC', serif;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: absolute;
+    left: 20px;
+    top: 28px;
+    z-index: 10;
+    backdrop-filter: blur(8px);
+}
+
+.back-btn:hover {
+    background: rgba(201, 168, 76, 0.15);
+    border-color: var(--gold);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+    :root {
+        --card-w: 100px;
+        --card-h: 170px;
+    }
+    .header { padding: 20px 16px 8px; }
+    .cards-area { padding: 0 20px; }
+    .cards-track { padding: 30px 60px; }
+    .tarot-card { margin-left: -15px; }
+    .tarot-card:hover,
+    .tarot-card.hand-hover {
+        transform: translateY(-30px) scale(1.12);
+        margin-left: 5px;
+        margin-right: 20px;
+    }
+    .modal {
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+        padding: 20px;
+        overflow-y: auto;
+        max-height: 90vh;
+    }
+    .modal-card {
+        width: 180px;
+        height: 300px;
+    }
+    .modal-info {
+        text-align: center;
+    }
+    .modal-divider {
+        margin: 16px auto;
+    }
+    .decks-grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 20px;
+        padding: 20px 20px 50px;
+    }
+    .deck-preview { height: 180px; }
+    .deck-preview-img { height: 150px; }
+    .back-btn { padding: 6px 12px; font-size: 0.75rem; }
+}
+
+@media (max-width: 480px) {
+    :root {
+        --card-w: 80px;
+        --card-h: 136px;
+    }
+    .tarot-card { margin-left: -12px; }
+    .decks-grid {
+        grid-template-columns: 1fr;
+        padding: 16px 16px 40px;
+    }
+    .select-header { padding: 40px 16px 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+</style>
+</head>
+<body>
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- VIEW 1: Deck Selection -->
+    <div class="view" id="viewSelect">
+        <header class="select-header">
+            <div class="header-ornament"></div>
+            <h1 class="select-title">Tarot Reading</h1>
+            <p class="select-subtitle">塔罗占卜 · 选择你的牌组</p>
+            <div class="header-ornament"></div>
+        </header>
+        <div class="decks-grid" id="decksGrid"></div>
+    </div>
+
+    <!-- VIEW 2: Card Drawing -->
+    <div class="view" id="viewDraw" style="display:none;">
+        <header class="header">
+            <button class="back-btn" id="backBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                <span>返回选牌</span>
+            </button>
+            <div class="header-center">
+                <div class="header-ornament"></div>
+                <h1 class="title" id="deckTitle">Tarot de Marseille</h1>
+                <p class="subtitle" id="deckSubtitle">马赛塔罗 · 命运之牌</p>
+                <p class="hint">缓缓滑动，聆听命运的低语，选择你的牌</p>
+                <div class="header-ornament"></div>
+            </div>
+        </header>
+        <div class="cards-area">
+            <div class="cards-track" id="cardsTrack"></div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="modal">
+            <button class="modal-close" id="modalClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+            <div class="modal-card">
+                <div class="modal-flip" id="modalFlip">
+                    <div class="modal-card-back">
+                        <div class="card-back-design">
+                            <div class="card-back-border">
+                                <div class="card-back-inner">
+                                    <div class="card-back-star">&#10022;</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-card-front" id="modalCardFront">
+                        <img id="modalCardImg" src="" alt="塔罗牌">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-info" id="modalInfo">
+                <div class="modal-card-number" id="modalNumber"></div>
+                <h2 class="modal-card-name" id="modalName"></h2>
+                <div class="modal-position" id="modalPosition"></div>
+                <div class="modal-divider"></div>
+                <div class="modal-keywords" id="modalKeywords"></div>
+                <div class="modal-meaning" id="modalMeaning"></div>
+            </div>
+        </div>
+    </div>
+
+<script>
+/* ============================================================
+   塔罗牌数据
+   ============================================================ */
+const INTERPRETATIONS = [
+  { id:0, numeral:'0', nameEN:'The Fool', nameCN:'愚者', upright:'新的开始、冒险精神、自由、天真无邪、无限可能', reversed:'鲁莽行事、缺乏计划、逃避现实、不成熟', meaning:'愚者是塔罗的灵魂，代表生命旅程的开端。正位时，命运之门向你敞开，鼓励你拥抱冒险、相信直觉。逆位时，提醒你在追随内心的同时，也需要脚踏实地。' },
+  { id:1, numeral:'I', nameEN:'The Magician', nameCN:'魔术师', upright:'创造力、意志力、技能、专注、自信', reversed:'欺骗、操纵、缺乏方向、天赋浪费', meaning:'魔术师面前摆放着四种元素的工具，象征着将想法转化为现实的完整能力。正位时，你拥有实现目标的一切资源。逆位时，警惕才华被浪费或被误导。' },
+  { id:2, numeral:'II', nameEN:'The High Priestess', nameCN:'女祭司', upright:'直觉、潜意识、内在智慧、神秘', reversed:'忽视内心声音、压抑直觉、表面化', meaning:'女祭司是潜意识与显意识之间的桥梁。正位时，倾听内心深处的声音，答案就在沉默之中。逆位时，你可能正在忽略重要的内在指引。' },
+  { id:3, numeral:'III', nameEN:'The Empress', nameCN:'皇后', upright:'丰盛、母性之爱、创造力、富足', reversed:'依赖他人、创造力受阻、自我忽视', meaning:'皇后是大地母亲的化身，代表着生命力与丰饶。正位时，生活中将涌入丰盛与创造力。逆位时，提醒你关注自我的滋养。' },
+  { id:4, numeral:'IIII', nameEN:'The Emperor', nameCN:'皇帝', upright:'权威、结构、稳定、领导力、纪律', reversed:'专制控制、僵化固执、滥用权力', meaning:'皇帝象征着秩序与力量。正位时，你有能力掌控局面，建立稳固的根基。逆位时，反思是否过于执着于控制而失去了灵活性。' },
+  { id:5, numeral:'V', nameEN:'The Hierophant', nameCN:'教皇', upright:'传统智慧、精神引导、信仰、教育', reversed:'教条主义、质疑权威、个人信仰探索', meaning:'教皇代表着传承的智慧与精神指引。正位时，寻求导师的帮助，遵循传统中的精华。逆位时，也许是时候走出属于自己的道路。' },
+  { id:6, numeral:'VI', nameEN:'The Lovers', nameCN:'恋人', upright:'爱与关系、心灵选择、和谐统一', reversed:'关系失衡、选择困难、价值观冲突', meaning:'恋人牌不仅关乎爱情，更关乎心灵深处的抉择。正位时，跟随心的方向做出选择。逆位时，审视内心的真实渴望。' },
+  { id:7, numeral:'VII', nameEN:'The Chariot', nameCN:'战车', upright:'胜利前进、意志力、决心、征服', reversed:'失去方向、缺乏控制、挫败', meaning:'战车是克服矛盾、勇往直前的力量。正位时，坚持你的方向，胜利就在前方。逆位时，重新审视你的前进路线。' },
+  { id:8, numeral:'VIII', nameEN:'Strength', nameCN:'力量', upright:'内在力量、勇气、温柔的坚韧、耐心', reversed:'自我怀疑、软弱、失去信心', meaning:'真正的力量不在于暴力，而在于内心的坚定与温柔。正位时，以柔克刚，用耐心与爱化解困境。逆位时，重新连接你的内在力量之源。' },
+  { id:9, numeral:'VIIII', nameEN:'The Hermit', nameCN:'隐者', upright:'内省沉思、寻找真理、独处智慧', reversed:'过度孤僻、迷失方向、拒绝帮助', meaning:'隐者选择孤独，不是逃避，而是为了更深的领悟。正位时，给自己独处的空间，答案将在静默中浮现。逆位时，不要让孤独变成与世隔绝。' },
+  { id:10, numeral:'X', nameEN:'Wheel of Fortune', nameCN:'命运之轮', upright:'命运转折、机遇降临、生命周期', reversed:'厄运逆转、抗拒变化、时运不济', meaning:'命运之轮永不停歇地转动。正位时，把握转折点。逆位时，记住——轮子还会继续转动，低谷不会永远持续。' },
+  { id:11, numeral:'XI', nameEN:'Justice', nameCN:'正义', upright:'公正无私、因果报应、平衡、真理', reversed:'不公正、逃避责任、偏见', meaning:'正义衡量世间善恶。正位时，公正的结果正在到来。逆位时，也许有些事情需要被重新审视与修正。' },
+  { id:12, numeral:'XII', nameEN:'The Hanged Man', nameCN:'倒吊人', upright:'换个视角、牺牲奉献、暂停等待', reversed:'不必要的牺牲、拖延逃避、固执己见', meaning:'倒吊人选择了不同的视角来观察世界。正位时，暂停脚步，换个角度看问题。逆位时，不要在无意义的等待中消耗自己。' },
+  { id:13, numeral:'XIII', nameEN:'Death', nameCN:'死神', upright:'终结与重生、深刻转变、放下旧我', reversed:'抗拒必要的改变、停滞不前', meaning:'骷髅挥舞着镰刀，收割一切陈旧之物。正位时，旧的篇章必须翻过，才能迎来新生。逆位时，是什么让你紧抓着过去不肯放手？' },
+  { id:14, numeral:'XIIII', nameEN:'Temperance', nameCN:'节制', upright:'平衡调和、适度节制、内在和谐', reversed:'极端失衡、过度放纵、缺乏耐心', meaning:'天使将水从一个杯中倒入另一个杯中，象征对立力量的完美融合。正位时，你正在找到生活的平衡点。逆位时，审视哪些方面失去了平衡。' },
+  { id:15, numeral:'XV', nameEN:'The Devil', nameCN:'恶魔', upright:'束缚枷锁、物欲诱惑、成瘾依赖', reversed:'打破束缚、重获自由、觉醒解脱', meaning:'恶魔脚下的锁链是松的，被缚者随时可以离开。正位时，审视哪些「锁链」是你自愿戴上的。逆位时，你正在从某种束缚中解脱。' },
+  { id:16, numeral:'XVI', nameEN:'The Tower', nameCN:'塔', upright:'突如其来的剧变、虚假的崩塌、觉醒', reversed:'逃避崩塌、延迟的冲击、内部瓦解', meaning:'雷电击中高塔，旧有结构崩塌。正位时，毁灭为真正的自由铺平道路。逆位时，你在回避一场必要的改变。' },
+  { id:17, numeral:'XVII', nameEN:'The Star', nameCN:'星星', upright:'希望之光、灵感涌现、宁静信念', reversed:'失去希望、信心动摇、悲观', meaning:'星星是暴风雨后的宁静，最深黑夜中的第一缕曙光。正位时，希望正在回归。逆位时，即使看不见星光，它们依然在那里。' },
+  { id:18, numeral:'XVIII', nameEN:'The Moon', nameCN:'月亮', upright:'潜意识深处、恐惧与幻觉、直觉警示', reversed:'走出恐惧、幻觉消散、清明回归', meaning:'一切在月光下变得模糊不清。正位时，相信直觉，但不要被幻象迷惑。逆位时，迷雾正在散去。' },
+  { id:19, numeral:'XVIIII', nameEN:'The Sun', nameCN:'太阳', upright:'光明喜悦、成功丰收、活力四射', reversed:'暂时阴霾、延迟的快乐、活力不足', meaning:'太阳是塔罗中最积极的牌之一。正位时，光明、温暖与成功正围绕着你。逆位时，太阳只是暂时被云遮挡。' },
+  { id:20, numeral:'XX', nameEN:'Judgement', nameCN:'审判', upright:'灵魂觉醒、天启召唤、重生', reversed:'自我怀疑、拒绝觉醒、逃避审视', meaning:'天使吹响最后的号角。正位时，内心深处的召唤正在响起，是时候回应你真正的使命。逆位时，你在逃避内心早已知晓的答案。' },
+  { id:21, numeral:'XXI', nameEN:'The World', nameCN:'世界', upright:'圆满完成、大功告成、宇宙和谐', reversed:'尚未完成、缺少最后一步、延迟达成', meaning:'世界牌是大阿卡纳的终点，代表一段旅程的圆满完成。正位时，你正在达到一个重要的里程碑。逆位时，终点线就在眼前，再坚持一下。' }
+];
+
+const DECKS = [
+  { key:'visconti', name:'Visconti-Sforza', nameCN:'维斯康蒂-斯福扎塔罗', year:'约1450', desc:'由意大利文艺复兴画家 Bonifacio Bembo 为米兰公爵绘制的手绘塔罗牌，是现存最古老的塔罗牌之一。华丽的金箔装饰与贵族气质，堪称艺术珍品。', available:true,
+    coverCards:['https://upload.wikimedia.org/wikipedia/commons/e/ec/Bembo-Visconti-tarot-arcanum-fool.jpg','https://upload.wikimedia.org/wikipedia/commons/1/19/Bembo-Visconti-tarot-arcanum-10-wheel_of_fortune.jpg','https://upload.wikimedia.org/wikipedia/commons/2/2d/Bembo-Visconti-tarot-arcanum-21-world.jpg'],
+    localNames:['Il Matto','Il Bagatto','La Papessa',"L'Imperatrice","L'Imperatore",'Il Papa',"L'Amore",'Il Carro','La Giustizia',"L'Eremita",'La Ruota della Fortuna','La Forza',"L'Appeso",'La Morte','La Temperanza','Il Diavolo','La Torre','La Stella','La Luna','Il Sole','Il Giudizio','Il Mondo'],
+    images:['https://upload.wikimedia.org/wikipedia/commons/e/ec/Bembo-Visconti-tarot-arcanum-fool.jpg','https://upload.wikimedia.org/wikipedia/commons/0/00/Bembo-Visconti-tarot-arcanum-01-magician.jpg','https://upload.wikimedia.org/wikipedia/commons/1/14/Bembo-Visconti-tarot-arcanum-02-high_priestess.jpg','https://upload.wikimedia.org/wikipedia/commons/5/50/Bembo-Visconti-tarot-arcanum-03-empress.jpg','https://upload.wikimedia.org/wikipedia/commons/2/20/Bembo-Visconti-tarot-arcanum-04-emperor.jpg','https://upload.wikimedia.org/wikipedia/commons/e/e1/Bembo-Visconti-tarot-arcanum-05-hierophant.jpg','https://upload.wikimedia.org/wikipedia/commons/4/40/Bembo-Visconti-tarot-arcanum-06-lovers.jpg','https://upload.wikimedia.org/wikipedia/commons/5/53/Bembo-Visconti-tarot-arcanum-07-chariot.jpg','https://upload.wikimedia.org/wikipedia/commons/8/83/Bembo-Visconti-tarot-arcanum-08-justice.jpg','https://upload.wikimedia.org/wikipedia/commons/2/2e/Bembo-Visconti-tarot-arcanum-09-hermit.jpg','https://upload.wikimedia.org/wikipedia/commons/1/19/Bembo-Visconti-tarot-arcanum-10-wheel_of_fortune.jpg','https://upload.wikimedia.org/wikipedia/commons/7/72/Bembo-Visconti-tarot-arcanum-11-strength.jpg','https://upload.wikimedia.org/wikipedia/commons/1/14/Bembo-Visconti-tarot-arcanum-12-hanged_man.jpg','https://upload.wikimedia.org/wikipedia/commons/e/e2/Bembo-Visconti-tarot-arcanum-13.jpg','https://upload.wikimedia.org/wikipedia/commons/5/52/Bembo-Visconti-tarot-arcanum-14-temperance.jpg','https://upload.wikimedia.org/wikipedia/commons/3/38/Jean_Dodal_Tarot_trump_15.jpg','https://upload.wikimedia.org/wikipedia/commons/0/03/Jean_Dodal_Tarot_trump_16.jpg','https://upload.wikimedia.org/wikipedia/commons/b/b6/Bembo-Visconti-tarot-arcanum-17-star.jpg','https://upload.wikimedia.org/wikipedia/commons/1/15/Bembo-Visconti-tarot-arcanum-18-moon.jpg','https://upload.wikimedia.org/wikipedia/commons/4/4e/Bembo-Visconti-tarot-arcanum-19-sun.jpg','https://upload.wikimedia.org/wikipedia/commons/f/f4/Bembo-Visconti-tarot-arcanum-20-judgement.jpg','https://upload.wikimedia.org/wikipedia/commons/2/2d/Bembo-Visconti-tarot-arcanum-21-world.jpg'] },
+  { key:'dodal', name:'Tarot de Marseille', nameCN:'Jean Dodal 马赛塔罗', year:'1701', desc:'由 Jean Dodal 于1701年在里昂制作的经典马赛塔罗。朴素有力的木刻版画风格，是马赛塔罗体系的标准范本，深刻影响了后世所有马赛系牌组。', available:true,
+    coverCards:['https://upload.wikimedia.org/wikipedia/commons/e/e0/Jean_Dodal_Tarot_trump_01.jpg','https://upload.wikimedia.org/wikipedia/commons/c/ca/Jean_Dodal_Tarot_trump_10.jpg','https://upload.wikimedia.org/wikipedia/commons/1/1d/Jean_Dodal_Tarot_trump_21.jpg'],
+    localNames:['Le Mat','Le Bateleur','La Papesse',"L'Impératrice","L'Empereur",'Le Pape',"L'Amoureux",'Le Chariot','La Justice',"L'Hermite",'La Roue de Fortune','La Force','Le Pendu',"L'Arcane sans nom",'Tempérance','Le Diable','La Maison Dieu',"L'Étoile",'La Lune','Le Soleil','Le Jugement','Le Monde'],
+    images:['https://upload.wikimedia.org/wikipedia/commons/2/2b/Jean_Dodal_Tarot_trump_Fool.jpg','https://upload.wikimedia.org/wikipedia/commons/e/e0/Jean_Dodal_Tarot_trump_01.jpg','https://upload.wikimedia.org/wikipedia/commons/9/92/Jean_Dodal_Tarot_trump_02.jpg','https://upload.wikimedia.org/wikipedia/commons/b/bb/Jean_Dodal_Tarot_trump_03.jpg','https://upload.wikimedia.org/wikipedia/commons/e/ec/Jean_Dodal_Tarot_trump_04.jpg','https://upload.wikimedia.org/wikipedia/commons/7/7c/Jean_Dodal_Tarot_trump_05.jpg','https://upload.wikimedia.org/wikipedia/commons/7/70/Jean_Dodal_Tarot_trump_06.jpg','https://upload.wikimedia.org/wikipedia/commons/b/be/Jean_Dodal_Tarot_trump_07.jpg','https://upload.wikimedia.org/wikipedia/commons/d/dd/Jean_Dodal_Tarot_trump_08.jpg','https://upload.wikimedia.org/wikipedia/commons/6/69/Jean_Dodal_Tarot_trump_09.jpg','https://upload.wikimedia.org/wikipedia/commons/c/ca/Jean_Dodal_Tarot_trump_10.jpg','https://upload.wikimedia.org/wikipedia/commons/0/0b/Jean_Dodal_Tarot_trump_11.jpg','https://upload.wikimedia.org/wikipedia/commons/2/29/Jean_Dodal_Tarot_trump_12.jpg','https://upload.wikimedia.org/wikipedia/commons/7/70/Jean_Dodal_Tarot_trump_13.jpg','https://upload.wikimedia.org/wikipedia/commons/2/27/Jean_Dodal_Tarot_trump_14.jpg','https://upload.wikimedia.org/wikipedia/commons/3/38/Jean_Dodal_Tarot_trump_15.jpg','https://upload.wikimedia.org/wikipedia/commons/0/03/Jean_Dodal_Tarot_trump_16.jpg','https://upload.wikimedia.org/wikipedia/commons/3/30/Jean_Dodal_Tarot_trump_17.jpg','https://upload.wikimedia.org/wikipedia/commons/5/50/Jean_Dodal_Tarot_trump_18.jpg','https://upload.wikimedia.org/wikipedia/commons/e/ec/Jean_Dodal_Tarot_trump_19.jpg','https://upload.wikimedia.org/wikipedia/commons/4/40/Jean_Dodal_Tarot_trump_20.jpg','https://upload.wikimedia.org/wikipedia/commons/1/1d/Jean_Dodal_Tarot_trump_21.jpg'] },
+  { key:'wirth', name:'Oswald Wirth Tarot', nameCN:'Oswald Wirth 神秘学塔罗', year:'1889', desc:'由瑞士神秘学家 Oswald Wirth 绘制，融合卡巴拉、占星与炼金术象征体系。每张牌上标注希伯来字母，色彩浓烈，是法国神秘学塔罗传统的里程碑之作。', available:true,
+    coverCards:['https://upload.wikimedia.org/wikipedia/commons/c/c3/01_Le_Bateleur%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/b/b7/10_La_Roue_de_Fortune%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/2/2e/21_Le_Monde%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg'],
+    localNames:['Le Fou','Le Bateleur','La Papesse',"L'Impératrice","L'Empereur",'Le Pape',"L'Amoureux",'Le Chariot','La Justice',"L'Ermite",'La Roue de Fortune','La Force','Le Pendu','La Mort','La Tempérance','Le Diable','Le Feu du Ciel','Les Étoiles','La Lune','Le Soleil','Le Jugement','Le Monde'],
+    images:['https://upload.wikimedia.org/wikipedia/commons/2/2a/00_Le_Fou%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/c/c3/01_Le_Bateleur%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/a/a8/02_La_Papesse%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/1/1a/03_L%27Imperatrice%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/6/61/04_L%27Empereur%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/9/90/05_Le_Pape%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/7/73/06_L%27Amoureux%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/a/a3/07_Le_Chariot%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/b/bf/08_La_Justice%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/d/d0/09_L%27Ermite%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/b/b7/10_La_Roue_de_Fortune%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/0/05/11_La_Force%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/7/77/12_Le_Pendu%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/4/4f/13_La_Mort%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/c/c4/14_La_Temperance%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/f/fb/15_Le_Diable%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/2/27/16_Le_Feu_du_Ciel%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/b/b7/17_Les_Etoiles%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/0/04/18_La_Lune%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/7/79/19_Le_Soleil%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/d/d7/20_Le_Jugement%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg','https://upload.wikimedia.org/wikipedia/commons/2/2e/21_Le_Monde%2C_Oswald_Wirth_Tarot_Deck_1889_BnF.jpg'] },
+  { key:'rws', name:'Rider-Waite-Smith', nameCN:'莱德·韦特·史密斯塔罗', year:'1909', desc:'由 Arthur E. Waite 设计、Pamela Colman Smith 绘制的经典塔罗牌。色彩鲜明，象征体系丰富，融合基督教、犹太教、炼金术元素，是现代塔罗占卜的基石之作。', available:true,
+    coverCards:['https://upload.wikimedia.org/wikipedia/commons/9/90/RWS_Tarot_00_Fool.jpg','https://upload.wikimedia.org/wikipedia/commons/3/3c/RWS_Tarot_10_Wheel_of_Fortune.jpg','https://upload.wikimedia.org/wikipedia/commons/f/ff/RWS_Tarot_21_World.jpg'],
+    localNames:['The Fool','The Magician','The High Priestess','The Empress','The Emperor','The Hierophant','The Lovers','The Chariot','Strength','The Hermit','Wheel of Fortune','Justice','The Hanged Man','Death','Temperance','The Devil','The Tower','The Star','The Moon','The Sun','Judgement','The World'],
+    images:['https://upload.wikimedia.org/wikipedia/commons/9/90/RWS_Tarot_00_Fool.jpg','https://upload.wikimedia.org/wikipedia/commons/d/de/RWS_Tarot_01_Magician.jpg','https://upload.wikimedia.org/wikipedia/commons/8/88/RWS_Tarot_02_High_Priestess.jpg','https://upload.wikimedia.org/wikipedia/commons/d/d2/RWS_Tarot_03_Empress.jpg','https://upload.wikimedia.org/wikipedia/commons/c/c3/RWS_Tarot_04_Emperor.jpg','https://upload.wikimedia.org/wikipedia/commons/8/8d/RWS_Tarot_05_Hierophant.jpg','https://upload.wikimedia.org/wikipedia/commons/d/db/RWS_Tarot_06_Lovers.jpg','https://upload.wikimedia.org/wikipedia/commons/9/9b/RWS_Tarot_07_Chariot.jpg','https://upload.wikimedia.org/wikipedia/commons/f/f5/RWS_Tarot_08_Strength.jpg','https://upload.wikimedia.org/wikipedia/commons/4/4d/RWS_Tarot_09_Hermit.jpg','https://upload.wikimedia.org/wikipedia/commons/3/3c/RWS_Tarot_10_Wheel_of_Fortune.jpg','https://upload.wikimedia.org/wikipedia/commons/e/e0/RWS_Tarot_11_Justice.jpg','https://upload.wikimedia.org/wikipedia/commons/2/2b/RWS_Tarot_12_Hanged_Man.jpg','https://upload.wikimedia.org/wikipedia/commons/d/d7/RWS_Tarot_13_Death.jpg','https://upload.wikimedia.org/wikipedia/commons/f/f8/RWS_Tarot_14_Temperance.jpg','https://upload.wikimedia.org/wikipedia/commons/5/55/RWS_Tarot_15_Devil.jpg','https://upload.wikimedia.org/wikipedia/commons/5/53/RWS_Tarot_16_Tower.jpg','https://upload.wikimedia.org/wikipedia/commons/d/db/RWS_Tarot_17_Star.jpg','https://upload.wikimedia.org/wikipedia/commons/7/7f/RWS_Tarot_18_Moon.jpg','https://upload.wikimedia.org/wikipedia/commons/1/17/RWS_Tarot_19_Sun.jpg','https://upload.wikimedia.org/wikipedia/commons/d/dd/RWS_Tarot_20_Judgement.jpg','https://upload.wikimedia.org/wikipedia/commons/f/ff/RWS_Tarot_21_World.jpg'] }
+];
+
+function buildDeckCards(deck) {
+  return INTERPRETATIONS.map((interp, i) => ({
+    ...interp,
+    localName: deck.localNames[i] || interp.nameEN,
+    image: deck.images[i] || '',
+    deckKey: deck.key
+  }));
+}
+
+/* ============================================================
+   粒子背景
+   ============================================================ */
+class ParticleSystem {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.particles = [];
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+    }
+    resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        this.init();
+    }
+    init() {
+        this.particles = [];
+        const count = Math.floor((this.canvas.width * this.canvas.height) / 8000);
+        for (let i = 0; i < count; i++) {
+            this.particles.push({
+                x: Math.random() * this.canvas.width, y: Math.random() * this.canvas.height,
+                size: Math.random() * 2 + 0.5, speedX: (Math.random() - 0.5) * 0.3,
+                speedY: (Math.random() - 0.5) * 0.2 - 0.1, opacity: Math.random() * 0.6 + 0.1,
+                pulse: Math.random() * Math.PI * 2, pulseSpeed: Math.random() * 0.02 + 0.005
+            });
+        }
+    }
+    update() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        for (const p of this.particles) {
+            p.x += p.speedX; p.y += p.speedY; p.pulse += p.pulseSpeed;
+            const alpha = p.opacity * (0.5 + 0.5 * Math.sin(p.pulse));
+            if (p.x < -10) p.x = this.canvas.width + 10;
+            if (p.x > this.canvas.width + 10) p.x = -10;
+            if (p.y < -10) p.y = this.canvas.height + 10;
+            if (p.y > this.canvas.height + 10) p.y = -10;
+            this.ctx.beginPath();
+            this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            this.ctx.fillStyle = `rgba(201, 168, 76, ${alpha})`;
+            this.ctx.fill();
+        }
+    }
+    animate() { this.update(); requestAnimationFrame(() => this.animate()); }
+}
+
+/* ============================================================
+   牌组选择器
+   ============================================================ */
+class DeckSelector {
+    constructor(onSelect) {
+        this.grid = document.getElementById('decksGrid');
+        this.onSelect = onSelect;
+        this.render();
+    }
+    render() {
+        this.grid.innerHTML = '';
+        DECKS.forEach((deck, i) => {
+            const card = document.createElement('div');
+            card.className = 'deck-card';
+            card.style.animationDelay = `${i * 0.1}s`;
+            let previewHTML = `<div class="deck-preview">
+                ${deck.coverCards.map(url => `<img class="deck-preview-img" src="${url}" alt="${deck.nameCN}" loading="lazy">`).join('')}
+            </div>`;
+            card.innerHTML = `
+                ${previewHTML}
+                <div class="deck-info">
+                    <div class="deck-name">${deck.name}</div>
+                    <div class="deck-name-cn">${deck.nameCN}（${deck.year}）</div>
+                    <div class="deck-desc">${deck.desc}</div>
+                </div>
+                <div class="deck-badge available">✦ 可用</div>
+            `;
+            card.addEventListener('click', () => this.onSelect(deck));
+            this.grid.appendChild(card);
+            card.style.opacity = '0'; card.style.transform = 'translateY(30px)';
+            setTimeout(() => {
+                card.style.transition = 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                card.style.opacity = ''; card.style.transform = '';
+            }, 80 * i);
+        });
+    }
+}
+
+/* ============================================================
+   视图控制器
+   ============================================================ */
+class ViewManager {
+    constructor() {
+        this.viewSelect = document.getElementById('viewSelect');
+        this.viewDraw = document.getElementById('viewDraw');
+        this.backBtn = document.getElementById('backBtn');
+        this.titleEl = document.getElementById('deckTitle');
+        this.subtitleEl = document.getElementById('deckSubtitle');
+        this.currentApp = null;
+        this.backBtn.addEventListener('click', () => this.showSelect());
+    }
+    showSelect() {
+        this.viewDraw.style.display = 'none';
+        this.viewSelect.style.display = 'flex';
+        this.viewSelect.classList.add('view-fade-enter');
+        setTimeout(() => this.viewSelect.classList.remove('view-fade-enter'), 600);
+    }
+    showDraw(deck) {
+        this.viewSelect.style.display = 'none';
+        this.viewDraw.style.display = 'flex';
+        this.viewDraw.classList.add('view-fade-enter');
+        setTimeout(() => this.viewDraw.classList.remove('view-fade-enter'), 600);
+        this.titleEl.textContent = deck.name;
+        this.subtitleEl.textContent = `${deck.nameCN} · 命运之牌`;
+        const cards = buildDeckCards(deck);
+        this.currentApp = new TarotApp(cards);
+    }
+}
+
+/* ============================================================
+   卡牌渲染与交互
+   ============================================================ */
+class TarotApp {
+    constructor(cards) {
+        this.track = document.getElementById('cardsTrack');
+        this.cardsArea = document.querySelector('.cards-area');
+        this.modalOverlay = document.getElementById('modalOverlay');
+        this.shuffledCards = this.shuffle([...cards]);
+        this.isDragging = false; this.startX = 0; this.scrollLeft = 0;
+        this.currentHover = null; this.isModalOpen = false;
+        this.wasDragging = false; this._lastDx = 0;
+        this.renderCards(); this.bindEvents();
+    }
+    shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+    renderCards() {
+        this.track.innerHTML = '';
+        this.track.style.transform = 'translateX(0)';
+        this.shuffledCards.forEach((card, i) => {
+            const el = document.createElement('div');
+            el.className = 'tarot-card'; el.dataset.index = i;
+            el.innerHTML = `<div class="card-inner"><div class="card-face card-back-design"><div class="card-back-border"><div class="card-back-inner"><div class="card-back-star">&#10022;</div></div></div></div><div class="card-face card-front-face"><img src="${card.image}" alt="${card.nameCN}" loading="lazy"></div></div>`;
+            el.addEventListener('click', () => { if (this.wasDragging) { this.wasDragging = false; return; } this.openCard(card, el); });
+            this.track.appendChild(el);
+            el.style.opacity = '0'; el.style.transform = 'translateY(20px) scale(0.9)';
+            setTimeout(() => {
+                el.style.transition = 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                el.style.opacity = '1'; el.style.transform = '';
+                setTimeout(() => { el.style.transition = ''; }, 400);
+            }, 30 * i);
+        });
+    }
+    bindEvents() {
+        if (this._cleanup) this._cleanup();
+        let dragDistance = 0;
+        const onMouseDown = (e) => { this.isDragging = true; this.wasDragging = false; dragDistance = 0; this.startX = e.pageX; this.scrollLeft = this.getTranslateX(); this.track.classList.add('grabbing'); };
+        const onMouseMove = (e) => { if (!this.isDragging) return; const dx = e.pageX - this.startX; dragDistance += Math.abs(dx - this._lastDx); this._lastDx = dx; if (dragDistance > 5) this.wasDragging = true; this.setTranslateX(this.scrollLeft + dx); };
+        const onMouseUp = () => { this.isDragging = false; this._lastDx = 0; this.track.classList.remove('grabbing'); this.clampPosition(); };
+        const onTouchStart = (e) => { this.isDragging = true; this.wasDragging = false; dragDistance = 0; this.startX = e.touches[0].pageX; this.scrollLeft = this.getTranslateX(); };
+        const onTouchMove = (e) => { if (!this.isDragging) return; const dx = e.touches[0].pageX - this.startX; dragDistance += Math.abs(dx - this._lastDx); this._lastDx = dx; if (dragDistance > 5) this.wasDragging = true; this.setTranslateX(this.scrollLeft + dx); };
+        const onTouchEnd = () => { this.isDragging = false; this._lastDx = 0; this.clampPosition(); };
+        const onWheel = (e) => { e.preventDefault(); const delta = e.deltaY || e.deltaX; this.setTranslateX(this.getTranslateX() - delta * 1.5); this.clampPosition(); };
+        const onModalClose = () => this.closeModal();
+        const onOverlayClick = (e) => { if (e.target === this.modalOverlay) this.closeModal(); };
+        const onEscape = (e) => { if (e.key === 'Escape') this.closeModal(); };
+        this.cardsArea.addEventListener('mousedown', onMouseDown);
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+        this.cardsArea.addEventListener('touchstart', onTouchStart, { passive: true });
+        this.cardsArea.addEventListener('touchmove', onTouchMove, { passive: true });
+        this.cardsArea.addEventListener('touchend', onTouchEnd);
+        this.cardsArea.addEventListener('wheel', onWheel, { passive: false });
+        document.getElementById('modalClose').addEventListener('click', onModalClose);
+        this.modalOverlay.addEventListener('click', onOverlayClick);
+        document.addEventListener('keydown', onEscape);
+        this._cleanup = () => {
+            this.cardsArea.removeEventListener('mousedown', onMouseDown);
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+            this.cardsArea.removeEventListener('touchstart', onTouchStart);
+            this.cardsArea.removeEventListener('touchmove', onTouchMove);
+            this.cardsArea.removeEventListener('touchend', onTouchEnd);
+            this.cardsArea.removeEventListener('wheel', onWheel);
+            document.getElementById('modalClose').removeEventListener('click', onModalClose);
+            this.modalOverlay.removeEventListener('click', onOverlayClick);
+            document.removeEventListener('keydown', onEscape);
+        };
+    }
+    getTranslateX() { const m = new DOMMatrixReadOnly(window.getComputedStyle(this.track).transform); return m.m41; }
+    setTranslateX(x) { this.track.style.transform = `translateX(${x}px)`; }
+    clampPosition() {
+        const trackW = this.track.scrollWidth, areaW = this.cardsArea.clientWidth;
+        let x = Math.max(-(trackW - areaW + 40), Math.min(0, this.getTranslateX()));
+        this.track.style.transition = 'transform 0.3s ease'; this.setTranslateX(x);
+        setTimeout(() => { this.track.style.transition = ''; }, 300);
+    }
+    openCard(card, el) {
+        if (this.isModalOpen) return;
+        this.isModalOpen = true; this._modalCanClose = false;
+        const isReversed = Math.random() > 0.5;
+        document.getElementById('modalCardImg').src = card.image;
+        document.getElementById('modalNumber').textContent = `Arcane ${card.numeral}`;
+        document.getElementById('modalName').textContent = `${card.nameCN} · ${card.localName}`;
+        const posEl = document.getElementById('modalPosition');
+        posEl.textContent = isReversed ? '逆 位' : '正 位';
+        posEl.className = 'modal-position ' + (isReversed ? 'reversed' : 'upright');
+        document.getElementById('modalKeywords').textContent = isReversed ? card.reversed : card.upright;
+        document.getElementById('modalMeaning').textContent = card.meaning;
+        const flip = document.getElementById('modalFlip');
+        flip.classList.remove('flipped');
+        requestAnimationFrame(() => { requestAnimationFrame(() => {
+            this.modalOverlay.classList.add('active');
+            setTimeout(() => { flip.classList.add('flipped'); }, 400);
+            setTimeout(() => { this.modalOverlay.classList.add('revealed'); }, 800);
+            setTimeout(() => { this._modalCanClose = true; }, 300);
+        }); });
+    }
+    closeModal() {
+        if (!this._modalCanClose && this.isModalOpen) return;
+        this.modalOverlay.classList.remove('active', 'revealed');
+        document.getElementById('modalFlip').classList.remove('flipped');
+        this.isModalOpen = false;
+    }
+}
+
+/* ============================================================
+   初始化
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+    const particles = new ParticleSystem(document.getElementById('particleCanvas'));
+    particles.animate();
+    const viewManager = new ViewManager();
+    new DeckSelector((deck) => { viewManager.showDraw(deck); });
+});
+</script>
+</body>
+</html>
